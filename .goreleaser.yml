@@ -1,0 +1,20 @@
+# .goreleaser.yml
+# Build customization
+builds:
+  - binary: nextnet
+    goos:
+      - linux
+      - windows
+      - darwin
+      - freebsd
+    goarch:
+      - amd64
+      - 386
+      - mips
+      - mipsle
+      - mips64
+      - mips64le
+      - arm
+      - arm64
+      - ppc
+      - ppc64
