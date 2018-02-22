@@ -8,7 +8,7 @@ import (
 
 func PrintVersion(app string) {
 	var version = "master"
-	fmt.Fprintf(os.Stderr, "%s v%s\n", app, version)
+	fmt.Fprintf(os.Stderr, "%s version %s\n", app, version)
 }
 
 func TrimName(name string) string {
