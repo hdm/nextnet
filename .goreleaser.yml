@@ -18,3 +18,6 @@ builds:
       - arm64
       - ppc
       - ppc64
+
+archive:
+  format: binary
