@@ -7,7 +7,7 @@ nextnet is a pivot point discovery tool written in Go.
 
 ## Download
 
-Binary packages are availble [here](https://github.com/hdm/nextnet/releases/latest).
+Binary packages are available [here](https://github.com/hdm/nextnet/releases/latest).
 
 ## Install
 
