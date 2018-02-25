@@ -13,7 +13,7 @@ type Prober interface {
 	Wait()
 	AddTarget(string)
 	CloseInput()
-	SetOutput(chan<- ScanResult)
+	SetOutput(chan<- scanResult)
 	CheckRateLimit()
 	SetLimiter(*rate.Limiter)
 }
@@ -23,7 +23,7 @@ type Probe struct {
 	options map[string]string
 	waiter  sync.WaitGroup
 	input   chan string
-	output  chan<- ScanResult
+	output  chan<- scanResult
 	limiter *rate.Limiter
 }
 
@@ -45,7 +45,7 @@ func (p *Probe) Initialize() {
 	p.name = "generic"
 }
 
-func (p *Probe) SetOutput(out chan<- ScanResult) {
+func (p *Probe) SetOutput(out chan<- scanResult) {
 	p.output = out
 }
 

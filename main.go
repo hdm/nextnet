@@ -11,7 +11,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type ScanResult struct {
+type scanResult struct {
 	Host  string            `json:"host"`
 	Port  string            `json:"port,omitempty"`
 	Proto string            `json:"proto,omitempty"`
@@ -38,9 +38,9 @@ func usage() {
 	flag.PrintDefaults()
 }
 
-func outputWriter(o <-chan ScanResult) {
+func outputWriter(out <-chan scanResult) {
 
-	for found := range o {
+	for found := range out {
 		j, err := json.Marshal(found)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error marshaling result: '%v' : %s\n", found, err)
@@ -52,7 +52,7 @@ func outputWriter(o <-chan ScanResult) {
 	wgOut.Done()
 }
 
-func initializeProbes(out chan<- ScanResult) {
+func initializeProbes(out chan<- scanResult) {
 	for _, probe := range probes {
 		probe.Initialize()
 		probe.SetOutput(out)
@@ -101,7 +101,7 @@ func main() {
 	addrChan := make(chan string)
 
 	// Output structs
-	outputChan := make(chan ScanResult)
+	outputChan := make(chan scanResult)
 
 	// Configure the probes
 	initializeProbes(outputChan)

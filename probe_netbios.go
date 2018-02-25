@@ -155,11 +155,11 @@ func (p *ProbeNetbios) SendNameRequest(ip string) {
 	p.SendRequest(ip, p.CreateNameRequest(name))
 }
 
-func (p *ProbeNetbios) ResultFromIP(ip string) ScanResult {
+func (p *ProbeNetbios) ResultFromIP(ip string) scanResult {
 	sreply := p.replies[ip].statusReply
 	nreply := p.replies[ip].nameReply
 
-	res := ScanResult{
+	res := scanResult{
 		Host:  ip,
 		Port:  "137",
 		Proto: "udp",

@@ -11,10 +11,13 @@ import (
 	"strings"
 )
 
+// MatchIPv6 is a regular expression for matching IPv6 addresses.
 var MatchIPv6 = regexp.MustCompile(`^((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?$`)
 
+// MatchIPv4 is a regular expression for matching IPv4 addresses.
 var MatchIPv4 = regexp.MustCompile(`^(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))$`)
 
+// IPv4Masks is a map with key as mask size and value as number of mask bits.
 var IPv4Masks = map[uint32]uint32{
 	1:          32,
 	2:          31,
@@ -50,6 +53,7 @@ var IPv4Masks = map[uint32]uint32{
 	2147483648: 1,
 }
 
+// IPv4MaskSizes is a slice of all IPv4 mask sizes.
 var IPv4MaskSizes = []uint32{
 	2147483648,
 	1073741824,
@@ -85,6 +89,7 @@ var IPv4MaskSizes = []uint32{
 	1,
 }
 
+// IPv4ToUint converts string IP to uint32.
 func IPv4ToUint(ips string) (uint32, error) {
 	ip := net.ParseIP(ips)
 	if ip == nil {
@@ -95,6 +100,7 @@ func IPv4ToUint(ips string) (uint32, error) {
 	return binary.BigEndian.Uint32(ip), nil
 }
 
+// UintToIPv4 converts uint32 IP to string.
 func UintToIPv4(ipi uint32) string {
 	ipb := make([]byte, 4)
 	binary.BigEndian.PutUint32(ipb, ipi)
@@ -102,6 +108,7 @@ func UintToIPv4(ipi uint32) string {
 	return ip.String()
 }
 
+// IPv4Range2CIDRs returns range of CIDRs built by string IPs.
 func IPv4Range2CIDRs(startIP, endIP string) ([]string, error) {
 	start, err := IPv4ToUint(startIP)
 	if err != nil {
@@ -120,6 +127,7 @@ func IPv4Range2CIDRs(startIP, endIP string) ([]string, error) {
 	return IPv4UintRange2CIDRs(start, end), nil
 }
 
+// IPv4UintRange2CIDRs returns range of CIDRs built by uint32 IPs.
 func IPv4UintRange2CIDRs(startIP, endIP uint32) (cidrs []string) {
 	// Ranges are inclusive
 	size := endIP - startIP + 1
@@ -160,7 +168,8 @@ func IPv4UintRange2CIDRs(startIP, endIP uint32) (cidrs []string) {
 	return
 }
 
-func AddressesFromCIDR(cidr string, o chan<- string) {
+// AddressesFromCIDR extracts addresses from CIDR and send its to out channel.
+func AddressesFromCIDR(cidr string, out chan<- string) {
 	if len(cidr) == 0 {
 		return
 	}
@@ -204,7 +213,7 @@ func AddressesFromCIDR(cidr string, o chan<- string) {
 	curAddr := curBase
 
 	for curAddr = curBase; curAddr < endBase; curAddr++ {
-		o <- UintToIPv4(curAddr)
+		out <- UintToIPv4(curAddr)
 	}
 
 	return
