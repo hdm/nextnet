@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -82,7 +83,12 @@ func (p *ProbeNetbios) ProcessReplies() {
 
 		ip := raddr.(*net.UDPAddr).IP.String()
 
-		reply := p.ParseReply(buff[0 : rlen-1])
+		reply, err := p.ParseReply(buff[0 : rlen-1])
+		if err != nil {
+			log.Println("parse reply failed:", err)
+			continue
+		}
+
 		if len(reply.Names) == 0 && len(reply.Addresses) == 0 {
 			continue
 		}
@@ -248,30 +254,37 @@ func (p *ProbeNetbios) DecodeNetbiosName(name [32]byte) [16]byte {
 	return decoded
 }
 
-func (p *ProbeNetbios) ParseReply(buff []byte) NetbiosReplyStatus {
+func (p *ProbeNetbios) ParseReply(buff []byte) (NetbiosReplyStatus, error) {
 
 	resp := NetbiosReplyStatus{}
 	temp := bytes.NewBuffer(buff)
 
-	binary.Read(temp, binary.BigEndian, &resp.Header)
+	if err := binary.Read(temp, binary.BigEndian, &resp.Header); err != nil {
+		return resp, fmt.Errorf("failed to read netbios reply status: %s", err)
+	}
 
 	if resp.Header.QuestionCount != 0 {
-		return resp
+		return resp, errors.New("question count is not 0")
 	}
 
 	if resp.Header.AnswerCount == 0 {
-		return resp
+		return resp, errors.New("answer count is 0")
 	}
 
 	// Names
 	if resp.Header.RecordType == 0x21 {
 		var rcnt uint8
 		var ridx uint8
-		binary.Read(temp, binary.BigEndian, &rcnt)
+		if err := binary.Read(temp, binary.BigEndian, &rcnt); err != nil {
+			return resp, err
+		}
 
 		for ridx = 0; ridx < rcnt; ridx++ {
 			name := NetbiosReplyName{}
-			binary.Read(temp, binary.BigEndian, &name)
+			if err := binary.Read(temp, binary.BigEndian, &name); err != nil {
+				log.Println("failed to read netbios reply name:", err)
+				continue
+			}
 			resp.Names = append(resp.Names, name)
 
 			if name.Type == 0x20 {
@@ -284,11 +297,13 @@ func (p *ProbeNetbios) ParseReply(buff []byte) NetbiosReplyStatus {
 		}
 
 		var hwbytes [6]uint8
-		binary.Read(temp, binary.BigEndian, &hwbytes)
+		if err := binary.Read(temp, binary.BigEndian, &hwbytes); err != nil {
+			return resp, fmt.Errorf("failed to read hwaddr: %s", err)
+		}
 		resp.HWAddr = fmt.Sprintf("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
 			hwbytes[0], hwbytes[1], hwbytes[2], hwbytes[3], hwbytes[4], hwbytes[5],
 		)
-		return resp
+		return resp, nil
 	}
 
 	// Addresses
@@ -296,12 +311,15 @@ func (p *ProbeNetbios) ParseReply(buff []byte) NetbiosReplyStatus {
 		var ridx uint16
 		for ridx = 0; ridx < (resp.Header.RecordLength / 6); ridx++ {
 			addr := NetbiosReplyAddress{}
-			binary.Read(temp, binary.BigEndian, &addr)
+			if err := binary.Read(temp, binary.BigEndian, &addr); err != nil {
+				log.Println("failed to read netbios reply address:", err)
+				continue
+			}
 			resp.Addresses = append(resp.Addresses, addr)
 		}
 	}
 
-	return resp
+	return resp, nil
 }
 
 func (p *ProbeNetbios) CreateStatusRequest() []byte {
@@ -368,7 +386,9 @@ func (p *ProbeNetbios) Initialize() {
 		time.Sleep(MaxProbeResponseTime)
 
 		// Shut down receiver
-		p.socket.Close()
+		if err := p.socket.Close(); err != nil {
+			log.Println("failed to close socket:", err)
+		}
 
 		// Report any incomplete results (status reply but no name replies)
 		p.ReportIncompleteResults()
