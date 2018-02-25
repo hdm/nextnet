@@ -46,8 +46,15 @@ func outputWriter(out <-chan scanResult) {
 			fmt.Fprintf(os.Stderr, "Error marshaling result: '%v' : %s\n", found, err)
 			continue
 		}
-		os.Stdout.Write(j)
-		os.Stdout.Write([]byte("\n"))
+		if _, err := os.Stdout.Write(j); err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing %q to stdout: %s", j, err)
+			continue
+		}
+
+		if _, err := os.Stdout.Write([]byte("\n")); err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing newline to stdout: %s", err)
+			continue
+		}
 	}
 	wgOut.Done()
 }
