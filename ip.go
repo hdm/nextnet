@@ -11,11 +11,11 @@ import (
 	"strings"
 )
 
-var Match_IPv6 = regexp.MustCompile(`^((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?$`)
+var MatchIPv6 = regexp.MustCompile(`^((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?$`)
 
-var Match_IPv4 = regexp.MustCompile(`^(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))$`)
+var MatchIPv4 = regexp.MustCompile(`^(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))$`)
 
-var IPv4_Masks = map[uint32]uint32{
+var IPv4Masks = map[uint32]uint32{
 	1:          32,
 	2:          31,
 	4:          30,
@@ -50,7 +50,7 @@ var IPv4_Masks = map[uint32]uint32{
 	2147483648: 1,
 }
 
-var IPv4_Mask_Sizes = []uint32{
+var IPv4MaskSizes = []uint32{
 	2147483648,
 	1073741824,
 	536870912,
@@ -85,80 +85,79 @@ var IPv4_Mask_Sizes = []uint32{
 	1,
 }
 
-func IPv4_to_UInt(ips string) (uint32, error) {
+func IPv4ToUint(ips string) (uint32, error) {
 	ip := net.ParseIP(ips)
 	if ip == nil {
 		return 0, errors.New("Invalid IPv4 address")
 	}
+
 	ip = ip.To4()
 	return binary.BigEndian.Uint32(ip), nil
 }
 
-func UInt_to_IPv4(ipi uint32) string {
+func UintToIPv4(ipi uint32) string {
 	ipb := make([]byte, 4)
 	binary.BigEndian.PutUint32(ipb, ipi)
 	ip := net.IP(ipb)
 	return ip.String()
 }
 
-func IPv4Range2CIDRs(s_ip string, e_ip string) ([]string, error) {
-
-	s_i, s_e := IPv4_to_UInt(s_ip)
-	if s_e != nil {
-		return []string{}, s_e
+func IPv4Range2CIDRs(startIP, endIP string) ([]string, error) {
+	start, err := IPv4ToUint(startIP)
+	if err != nil {
+		return []string{}, err
 	}
 
-	e_i, e_e := IPv4_to_UInt(e_ip)
-	if e_e != nil {
-		return []string{}, e_e
+	end, err := IPv4ToUint(endIP)
+	if err != nil {
+		return []string{}, err
 	}
 
-	if s_i > e_i {
+	if start > end {
 		return []string{}, errors.New("Start address is bigger than end address")
 	}
 
-	return IPv4UIntRange2CIDRs(s_i, e_i), nil
+	return IPv4UintRange2CIDRs(start, end), nil
 }
 
-func IPv4UIntRange2CIDRs(s_i uint32, e_i uint32) []string {
-	cidrs := []string{}
-
+func IPv4UintRange2CIDRs(startIP, endIP uint32) (cidrs []string) {
 	// Ranges are inclusive
-	size := e_i - s_i + 1
+	size := endIP - startIP + 1
 
 	if size == 0 {
 		return cidrs
 	}
 
-	for i := range IPv4_Mask_Sizes {
+	for i := range IPv4MaskSizes {
 
-		mask_size := IPv4_Mask_Sizes[i]
+		maskSize := IPv4MaskSizes[i]
 
-		if mask_size > size {
+		if maskSize > size {
 			continue
 		}
 
 		// Exact match of the block size
-		if mask_size == size {
-			cidrs = append(cidrs, fmt.Sprintf("%s/%d", UInt_to_IPv4(s_i), IPv4_Masks[mask_size]))
+		if maskSize == size {
+			cidrs = append(cidrs, fmt.Sprintf("%s/%d", UintToIPv4(startIP), IPv4Masks[maskSize]))
 			break
 		}
 
 		// Chop off the biggest block that fits
-		cidrs = append(cidrs, fmt.Sprintf("%s/%d", UInt_to_IPv4(s_i), IPv4_Masks[mask_size]))
-		s_i = s_i + mask_size
+		cidrs = append(cidrs, fmt.Sprintf("%s/%d", UintToIPv4(endIP), IPv4Masks[maskSize]))
+		startIP += maskSize
 
 		// Look for additional blocks
-		new_cidrs := IPv4UIntRange2CIDRs(s_i, e_i)
+		newCIDRs := IPv4UintRange2CIDRs(startIP, endIP)
 
 		// Merge those blocks into out results
-		for x := range new_cidrs {
-			cidrs = append(cidrs, new_cidrs[x])
+		for x := range newCIDRs {
+			cidrs = append(cidrs, newCIDRs[x])
 		}
 		break
 
 	}
-	return cidrs
+
+	return
 }
 
 func AddressesFromCIDR(cidr string, o chan<- string) {
@@ -189,23 +188,23 @@ func AddressesFromCIDR(cidr string, o chan<- string) {
 		return
 	}
 
-	net_base, err := IPv4_to_UInt(net.IP.String())
+	netBase, err := IPv4ToUint(net.IP.String())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Invalid IPv4 Address %s: %s\n", ip.String(), err.Error())
 		return
 	}
 
-	mask_ones, mask_total := net.Mask.Size()
+	maskOnes, maskTotal := net.Mask.Size()
 
 	// Does not work for IPv6 due to cast to uint32
-	net_size := uint32(math.Pow(2, float64(mask_total-mask_ones)))
+	netSize := uint32(math.Pow(2, float64(maskTotal-maskOnes)))
 
-	cur_base := net_base
-	end_base := net_base + net_size
-	cur_addr := cur_base
+	curBase := netBase
+	endBase := netBase + netSize
+	curAddr := curBase
 
-	for cur_addr = cur_base; cur_addr < end_base; cur_addr++ {
-		o <- UInt_to_IPv4(cur_addr)
+	for curAddr = curBase; curAddr < endBase; curAddr++ {
+		o <- UintToIPv4(curAddr)
 	}
 
 	return

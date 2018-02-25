@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"golang.org/x/time/rate"
 	"os"
 	"runtime"
 	"sync"
-	"time"
+
+	"golang.org/x/time/rate"
 )
 
 type ScanResult struct {
@@ -21,78 +21,13 @@ type ScanResult struct {
 	Info  map[string]string `json:"info"`
 }
 
-type Prober interface {
-	Setup()
-	Initialize()
-	Wait()
-	AddTarget(string)
-	CloseInput()
-	SetOutput(chan<- ScanResult)
-	CheckRateLimit()
-	SetLimiter(*rate.Limiter)
-}
-
-type Probe struct {
-	name    string
-	options map[string]string
-	waiter  sync.WaitGroup
-	input   chan string
-	output  chan<- ScanResult
+var (
 	limiter *rate.Limiter
-}
-
-func (this *Probe) String() string {
-	return fmt.Sprintf("%s", this.name)
-}
-
-func (this *Probe) Wait() {
-	this.waiter.Wait()
-	return
-}
-
-func (this *Probe) Setup() {
-	this.name = "generic"
-	this.input = make(chan string)
-	return
-}
-
-func (this *Probe) Initialize() {
-	this.Setup()
-	this.name = "generic"
-	return
-}
-
-func (this *Probe) SetOutput(c_out chan<- ScanResult) {
-	this.output = c_out
-	return
-}
-
-func (this *Probe) AddTarget(t string) {
-	this.input <- t
-	return
-}
-
-func (this *Probe) CloseInput() {
-	close(this.input)
-	return
-}
-
-func (this *Probe) SetLimiter(limiter *rate.Limiter) {
-	this.limiter = limiter
-	return
-}
-
-func (this *Probe) CheckRateLimit() {
-	for this.limiter.Allow() == false {
-		time.Sleep(10 * time.Millisecond)
-	}
-}
-
-var limiter *rate.Limiter
-var ppsrate *int
-var probes []Prober
-var wi sync.WaitGroup
-var wo sync.WaitGroup
+	ppsrate *int
+	probes  []Prober
+	wgIn    sync.WaitGroup
+	wgOut   sync.WaitGroup
+)
 
 func usage() {
 	fmt.Println("Usage: " + os.Args[0] + " [cidr] ... [cidr]")
@@ -114,13 +49,13 @@ func outputWriter(o <-chan ScanResult) {
 		os.Stdout.Write(j)
 		os.Stdout.Write([]byte("\n"))
 	}
-	wo.Done()
+	wgOut.Done()
 }
 
-func initializeProbes(c_out chan<- ScanResult) {
+func initializeProbes(out chan<- ScanResult) {
 	for _, probe := range probes {
 		probe.Initialize()
-		probe.SetOutput(c_out)
+		probe.SetOutput(out)
 		probe.SetLimiter(limiter)
 	}
 }
@@ -131,8 +66,8 @@ func waitProbes() {
 	}
 }
 
-func processAddress(i <-chan string, o chan<- ScanResult) {
-	for addr := range i {
+func processAddress(in <-chan string) {
+	for addr := range in {
 		for _, probe := range probes {
 			probe.AddTarget(addr)
 		}
@@ -141,7 +76,8 @@ func processAddress(i <-chan string, o chan<- ScanResult) {
 	for _, probe := range probes {
 		probe.CloseInput()
 	}
-	wi.Done()
+
+	wgIn.Done()
 }
 
 func main() {
@@ -162,39 +98,39 @@ func main() {
 	limiter = rate.NewLimiter(rate.Limit(*ppsrate), *ppsrate*3)
 
 	// Input addresses
-	c_addr := make(chan string)
+	addrChan := make(chan string)
 
 	// Output structs
-	c_out := make(chan ScanResult)
+	outputChan := make(chan ScanResult)
 
 	// Configure the probes
-	initializeProbes(c_out)
+	initializeProbes(outputChan)
 
 	// Launch a single input address processor
-	wi.Add(1)
-	go processAddress(c_addr, c_out)
+	wgIn.Add(1)
+	go processAddress(addrChan)
 
 	// Launch a single output writer
-	wo.Add(1)
-	go outputWriter(c_out)
+	wgOut.Add(1)
+	go outputWriter(outputChan)
 
 	// Parse CIDRs and feed IPs to the input channel
 	for _, cidr := range flag.Args() {
-		AddressesFromCIDR(cidr, c_addr)
+		AddressesFromCIDR(cidr, addrChan)
 	}
 
 	// Close the cidr input channel
-	close(c_addr)
+	close(addrChan)
 
 	// Wait for the input feed to complete
-	wi.Wait()
+	wgIn.Wait()
 
 	// Wait for pending probes
 	waitProbes()
 
 	// Close the output handle
-	close(c_out)
+	close(outputChan)
 
 	// Wait for the output goroutine
-	wo.Wait()
+	wgOut.Wait()
 }

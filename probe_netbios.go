@@ -62,64 +62,64 @@ type NetbiosReplyStatus struct {
 	HWAddr    string
 }
 
-func (this *ProbeNetbios) ProcessReplies() {
+func (p *ProbeNetbios) ProcessReplies() {
 	buff := make([]byte, 1500)
 
-	this.replies = make(map[string]*NetbiosInfo)
+	p.replies = make(map[string]*NetbiosInfo)
 
 	for {
-		rlen, raddr, rerr := this.socket.ReadFrom(buff)
+		rlen, raddr, rerr := p.socket.ReadFrom(buff)
 		if rerr != nil {
 			if nerr, ok := rerr.(net.Error); ok && nerr.Timeout() {
-				log.Printf("probe %s receiver timed out: %s", this, rerr)
+				log.Printf("probe %s receiver timed out: %s", p, rerr)
 				continue
 			}
 
 			// Complain about other error types
-			log.Printf("probe %s receiver returned error: %s", this, rerr)
+			log.Printf("probe %s receiver returned error: %s", p, rerr)
 			return
 		}
 
 		ip := raddr.(*net.UDPAddr).IP.String()
 
-		reply := this.ParseReply(buff[0 : rlen-1])
+		reply := p.ParseReply(buff[0 : rlen-1])
 		if len(reply.Names) == 0 && len(reply.Addresses) == 0 {
 			continue
 		}
 
-		_, found := this.replies[ip]
+		_, found := p.replies[ip]
 		if !found {
 			nbinfo := new(NetbiosInfo)
-			this.replies[ip] = nbinfo
+			p.replies[ip] = nbinfo
 		}
 
 		// Handle status replies by sending a name request
 		if reply.Header.RecordType == 0x21 {
-			// log.Printf("probe %s received a status reply of %d bytes from %s", this, rlen, raddr)
-			this.replies[ip].statusReply = reply
-			this.replies[ip].statusRecv = time.Now()
+			// log.Printf("probe %s received a status reply of %d bytes from %s", p, rlen, raddr)
+			p.replies[ip].statusReply = reply
+			p.replies[ip].statusRecv = time.Now()
 
 			ntime := time.Time{}
-			if this.replies[ip].nameSent == ntime {
-				this.replies[ip].nameSent = time.Now()
-				this.SendNameRequest(ip)
+			if p.replies[ip].nameSent == ntime {
+				p.replies[ip].nameSent = time.Now()
+				p.SendNameRequest(ip)
 			}
 		}
 
 		// Handle name replies by reporting the result
 		if reply.Header.RecordType == 0x20 {
-			// log.Printf("probe %s received a name reply of %d bytes from %s", this, rlen, raddr)
-			this.replies[ip].nameReply = reply
-			this.replies[ip].nameRecv = time.Now()
-			this.ReportResult(ip)
+			// log.Printf("probe %s received a name reply of %d bytes from %s", p, rlen, raddr)
+			p.replies[ip].nameReply = reply
+			p.replies[ip].nameRecv = time.Now()
+			p.ReportResult(ip)
 		}
 	}
 }
 
-func (this *ProbeNetbios) SendRequest(ip string, req []byte) {
+func (p *ProbeNetbios) SendRequest(ip string, req []byte) {
 	addr, aerr := net.ResolveUDPAddr("udp", ip+":137")
 	if aerr != nil {
-		log.Printf("probe %s failed to resolve %s (%s)", this, ip, aerr)
+		log.Printf("probe %s failed to resolve %s (%s)", p, ip, aerr)
 		return
 	}
 
@@ -127,11 +127,11 @@ func (this *ProbeNetbios) SendRequest(ip string, req []byte) {
 	wcnt := 0
 	for wcnt = 0; wcnt < 5; wcnt++ {
 
-		this.CheckRateLimit()
+		p.CheckRateLimit()
 
-		_, werr := this.socket.WriteTo(req, addr)
+		_, werr := p.socket.WriteTo(req, addr)
 		if werr != nil {
-			log.Printf("probe %s [%d/%d] failed to send to %s (%s)", this, wcnt+1, 5, ip, werr)
+			log.Printf("probe %s [%d/%d] failed to send to %s (%s)", p, wcnt+1, 5, ip, werr)
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
@@ -140,30 +140,30 @@ func (this *ProbeNetbios) SendRequest(ip string, req []byte) {
 
 	// Were we able to send it eventually?
 	if wcnt == 5 {
-		log.Printf("probe %s [%d/%d] gave up sending to %s", this, wcnt, 5, ip)
+		log.Printf("probe %s [%d/%d] gave up sending to %s", p, wcnt, 5, ip)
 	}
 }
 
-func (this *ProbeNetbios) SendStatusRequest(ip string) {
-	// log.Printf("probe %s is sending a status request to %s", this, ip)
-	this.SendRequest(ip, this.CreateStatusRequest())
+func (p *ProbeNetbios) SendStatusRequest(ip string) {
+	// log.Printf("probe %s is sending a status request to %s", p, ip)
+	p.SendRequest(ip, p.CreateStatusRequest())
 }
 
-func (this *ProbeNetbios) SendNameRequest(ip string) {
-	sreply := this.replies[ip].statusReply
+func (p *ProbeNetbios) SendNameRequest(ip string) {
+	sreply := p.replies[ip].statusReply
 	name := TrimName(string(sreply.HostName[:]))
-	this.SendRequest(ip, this.CreateNameRequest(name))
+	p.SendRequest(ip, p.CreateNameRequest(name))
 }
 
-func (this *ProbeNetbios) ResultFromIP(ip string) ScanResult {
-	sreply := this.replies[ip].statusReply
-	nreply := this.replies[ip].nameReply
+func (p *ProbeNetbios) ResultFromIP(ip string) ScanResult {
+	sreply := p.replies[ip].statusReply
+	nreply := p.replies[ip].nameReply
 
 	res := ScanResult{
 		Host:  ip,
 		Port:  "137",
 		Proto: "udp",
-		Probe: this.String(),
+		Probe: p.String(),
 	}
 
 	res.Info = make(map[string]string)
@@ -208,18 +208,18 @@ func (this *ProbeNetbios) ResultFromIP(ip string) ScanResult {
 	return res
 }
 
-func (this *ProbeNetbios) ReportResult(ip string) {
-	this.output <- this.ResultFromIP(ip)
-	delete(this.replies, ip)
+func (p *ProbeNetbios) ReportResult(ip string) {
+	p.output <- p.ResultFromIP(ip)
+	delete(p.replies, ip)
 }
 
-func (this *ProbeNetbios) ReportIncompleteResults() {
-	for ip, _ := range this.replies {
-		this.ReportResult(ip)
+func (p *ProbeNetbios) ReportIncompleteResults() {
+	for ip := range p.replies {
+		p.ReportResult(ip)
 	}
 }
 
-func (this *ProbeNetbios) EncodeNetbiosName(name [16]byte) [32]byte {
+func (p *ProbeNetbios) EncodeNetbiosName(name [16]byte) [32]byte {
 	encoded := [32]byte{}
 
 	for i := 0; i < 16; i++ {
@@ -235,7 +235,7 @@ func (this *ProbeNetbios) EncodeNetbiosName(name [16]byte) [32]byte {
 	return encoded
 }
 
-func (this *ProbeNetbios) DecodeNetbiosName(name [32]byte) [16]byte {
+func (p *ProbeNetbios) DecodeNetbiosName(name [32]byte) [16]byte {
 	decoded := [16]byte{}
 
 	for i := 0; i < 16; i++ {
@@ -248,7 +248,7 @@ func (this *ProbeNetbios) DecodeNetbiosName(name [32]byte) [16]byte {
 	return decoded
 }
 
-func (this *ProbeNetbios) ParseReply(buff []byte) NetbiosReplyStatus {
+func (p *ProbeNetbios) ParseReply(buff []byte) NetbiosReplyStatus {
 
 	resp := NetbiosReplyStatus{}
 	temp := bytes.NewBuffer(buff)
@@ -304,7 +304,7 @@ func (this *ProbeNetbios) ParseReply(buff []byte) NetbiosReplyStatus {
 	return resp
 }
 
-func (this *ProbeNetbios) CreateStatusRequest() []byte {
+func (p *ProbeNetbios) CreateStatusRequest() []byte {
 	return []byte{
 		byte(rand.Intn(256)), byte(rand.Intn(256)),
 		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
@@ -316,7 +316,7 @@ func (this *ProbeNetbios) CreateStatusRequest() []byte {
 	}
 }
 
-func (this *ProbeNetbios) CreateNameRequest(name string) []byte {
+func (p *ProbeNetbios) CreateNameRequest(name string) []byte {
 	nbytes := [16]byte{}
 	copy(nbytes[0:15], []byte(strings.ToUpper(name)[:]))
 
@@ -331,50 +331,50 @@ func (this *ProbeNetbios) CreateNameRequest(name string) []byte {
 		0x00, 0x00, 0x20, 0x00, 0x01,
 	}
 
-	encoded := this.EncodeNetbiosName(nbytes)
+	encoded := p.EncodeNetbiosName(nbytes)
 	copy(req[13:45], encoded[0:32])
 	return req
 }
 
-func (this *ProbeNetbios) Initialize() {
-	this.Setup()
-	this.name = "netbios"
-	this.waiter.Add(1)
+func (p *ProbeNetbios) Initialize() {
+	p.Setup()
+	p.name = "netbios"
+	p.waiter.Add(1)
 
 	// Open socket
-	this.socket, _ = net.ListenPacket("udp", "")
+	p.socket, _ = net.ListenPacket("udp", "")
 
 	go func() {
-		go this.ProcessReplies()
+		go p.ProcessReplies()
 
-		for dip := range this.input {
-			this.SendStatusRequest(dip)
+		for dip := range p.input {
+			p.SendStatusRequest(dip)
 
 			// If our pending replies gets > MAX, stop, process, report, clear, resume
-			if len(this.replies) > MaxPendingReplies {
-				log.Printf("probe %s is flushing due to maximum replies hit (%d)", this, len(this.replies))
+			if len(p.replies) > MaxPendingReplies {
+				log.Printf("probe %s is flushing due to maximum replies hit (%d)", p, len(p.replies))
 				time.Sleep(MaxProbeResponseTime)
-				this.ReportIncompleteResults()
+				p.ReportIncompleteResults()
 			}
 		}
 
 		// Sleep for packet timeout of initial probe
-		log.Printf("probe %s is waiting for final replies to status probe", this)
+		log.Printf("probe %s is waiting for final replies to status probe", p)
 		time.Sleep(MaxProbeResponseTime)
 
 		// The receiver is sending interface probes in response to status probes
 
-		log.Printf("probe %s is waiting for final replies to interface probe", this)
+		log.Printf("probe %s is waiting for final replies to interface probe", p)
 		time.Sleep(MaxProbeResponseTime)
 
 		// Shut down receiver
-		this.socket.Close()
+		p.socket.Close()
 
 		// Report any incomplete results (status reply but no name replies)
-		this.ReportIncompleteResults()
+		p.ReportIncompleteResults()
 
 		// Complete
-		this.waiter.Done()
+		p.waiter.Done()
 	}()
 
 	return
