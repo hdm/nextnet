@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net"
@@ -64,24 +65,40 @@ type NetbiosReplyStatus struct {
 }
 
 func (p *ProbeNetbios) ProcessReplies() {
+	defer p.waiter.Done()
+
 	buff := make([]byte, 1500)
 
 	p.replies = make(map[string]*NetbiosInfo)
 
 	for {
-		rlen, raddr, rerr := p.socket.ReadFrom(buff)
-		if rerr != nil {
-			if nerr, ok := rerr.(net.Error); ok && nerr.Timeout() {
-				log.Printf("probe %s receiver timed out: %s", p, rerr)
-				continue
-			}
+		rlen, raddr, err := p.socket.ReadFrom(buff)
+		if err != nil {
+			switch err := err.(type) {
 
-			// Complain about other error types
-			log.Printf("probe %s receiver returned error: %s", p, rerr)
-			return
+			case *net.OpError:
+				log.Println("OpError:", err)
+				return
+
+			case net.Error:
+				if err.Timeout() {
+					log.Printf("probe %s receiver timed out: %s", p, err)
+					return
+				}
+
+				log.Printf("probe %s receiver returned net error: %s", p, err)
+				return
+
+			default:
+				log.Printf("probe %s receiver returned error: %s", p, err)
+				return
+			}
 		}
 
-		ip := raddr.(*net.UDPAddr).IP.String()
+		if raddr == nil {
+			log.Printf("reply address is nil, skipping...")
+			return
+		}
 
 		reply, err := p.ParseReply(buff[0 : rlen-1])
 		if err != nil {
@@ -93,10 +110,9 @@ func (p *ProbeNetbios) ProcessReplies() {
 			continue
 		}
 
-		_, found := p.replies[ip]
-		if !found {
-			nbinfo := new(NetbiosInfo)
-			p.replies[ip] = nbinfo
+		ip := raddr.(*net.UDPAddr).IP.String()
+		if _, ok := p.replies[ip]; !ok {
+			p.replies[ip] = new(NetbiosInfo)
 		}
 
 		// Handle status replies by sending a name request
@@ -255,12 +271,11 @@ func (p *ProbeNetbios) DecodeNetbiosName(name [32]byte) [16]byte {
 }
 
 func (p *ProbeNetbios) ParseReply(buff []byte) (NetbiosReplyStatus, error) {
-
 	resp := NetbiosReplyStatus{}
 	temp := bytes.NewBuffer(buff)
 
-	if err := binary.Read(temp, binary.BigEndian, &resp.Header); err != nil {
-		return resp, fmt.Errorf("failed to read netbios reply status: %s", err)
+	if err := binary.Read(temp, binary.BigEndian, &resp.Header); err != nil && err != io.EOF {
+		return resp, fmt.Errorf("failed to read netbios reply status: %s\n", err)
 	}
 
 	if resp.Header.QuestionCount != 0 {
@@ -311,7 +326,7 @@ func (p *ProbeNetbios) ParseReply(buff []byte) (NetbiosReplyStatus, error) {
 		var ridx uint16
 		for ridx = 0; ridx < (resp.Header.RecordLength / 6); ridx++ {
 			addr := NetbiosReplyAddress{}
-			if err := binary.Read(temp, binary.BigEndian, &addr); err != nil {
+			if err := binary.Read(temp, binary.BigEndian, &addr); err != nil && err != io.EOF {
 				log.Println("failed to read netbios reply address:", err)
 				continue
 			}
@@ -357,13 +372,17 @@ func (p *ProbeNetbios) CreateNameRequest(name string) []byte {
 func (p *ProbeNetbios) Initialize() {
 	p.Setup()
 	p.name = "netbios"
-	p.waiter.Add(1)
+	p.waiter.Add(2)
 
 	// Open socket
-	p.socket, _ = net.ListenPacket("udp", "")
+	var err error
+	p.socket, err = net.ListenPacket("udp", "")
+	if err != nil {
+		log.Println("Listen UDP packet error:", err)
+	}
 
+	go p.ProcessReplies()
 	go func() {
-		go p.ProcessReplies()
 
 		for dip := range p.input {
 			p.SendStatusRequest(dip)
