@@ -82,7 +82,7 @@ func (this *ProbeNetbios) ProcessReplies() {
 
 		ip := raddr.(*net.UDPAddr).IP.String()
 
-		reply := this.ParseReply(buff[0 : rlen-1])
+		reply := this.ParseReply(buff[0 : rlen])
 		if len(reply.Names) == 0 && len(reply.Addresses) == 0 {
 			continue
 		}
