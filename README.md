@@ -1,7 +1,8 @@
 nextnet
 ===
 
-[![GoDoc](https://godoc.org/github.com/hdm/nextnet?status.svg)](https://godoc.org/github.com/hdm/nextnet)
+[![GoDoc](https://godoc.org/github.com/hdm/nextnet?status.svg)](https://godoc.org/github.com/hdm/nextnet)[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fhdm%2Fnextnet.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fhdm%2Fnextnet?ref=badge_shield)
+
 
 nextnet is a pivot point discovery tool written in Go.
 
@@ -69,3 +70,7 @@ $ nextnet -rate 10000 114.80.0.0/16 | grep nets
 {"host":"114.80.222.219","port":"137","proto":"udp","probe":"netbios","name":"WIN-VINFEGJ7HP8","nets":["114.80.222.219"],"info":{"domain":"WORKGROUP","hwaddr":"14:18:77:41:17:25"}}
 {"host":"114.80.245.193","port":"137","proto":"udp","probe":"netbios","name":"WINDOWS-OT2WS9T","nets":["114.80.245.193"],"info":{"domain":"WORKGROUP","hwaddr":"a0:d3:c1:f2:3e:26"}}
 ```
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fhdm%2Fnextnet.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fhdm%2Fnextnet?ref=badge_large)
